@@ -1,0 +1,6 @@
+{
+  "name": "JogjaGreen",
+  "description": "Smart waste management system layout for Yogyakarta supporting citizens and waste management officers",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
