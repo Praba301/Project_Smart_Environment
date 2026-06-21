@@ -32,7 +32,8 @@ import {
   BarChart2, 
   RefreshCw,
   Sparkles,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -72,7 +73,7 @@ export default function App() {
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [districtSelectorOpen, setDistrictSelectorOpen] = useState(false);
 
-  // Template Photos for Reporting (makes demo extremely interactive)
+  // Template Photos for Reporting
   const presetPhotos = [
     { name: 'Tumpukan Plastik', url: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=600&auto=format&fit=crop&q=60' },
     { name: 'Sampah Organik Pasar', url: 'https://images.unsplash.com/photo-1530587191325-3db32d826c18?w=600&auto=format&fit=crop&q=60' },
@@ -100,10 +101,60 @@ export default function App() {
   const [routeOptimized, setRouteOptimized] = useState(false);
   const [reviewingReport, setReviewingReport] = useState<Report | null>(null);
 
+  // ===== FITUR BARU: PANDUAN PILAH EDUKASI =====
+  const [selectedGuideCategory, setSelectedGuideCategory] = useState<'Organik' | 'Anorganik' | 'B3' | null>(null);
+  const [showGuideModal, setShowGuideModal] = useState(false);
+
+  // Data edukasi untuk masing-masing kategori
+  const guideEducationData = {
+    Organik: {
+      title: '🧑‍🌾 Panduan Memilah Sampah Organik',
+      icon: '🌿',
+      color: 'emerald',
+      fullDescription: `Sampah organik adalah sampah yang berasal dari sisa makhluk hidup yang mudah terurai secara alami.`,
+      steps: [
+        '✅ Pisahkan sisa makanan dari kemasan plastik',
+        '✅ Potong sampah organik menjadi ukuran kecil agar cepat terurai',
+        '✅ Simpan di wadah khusus dengan tutup untuk mengurangi bau',
+        '✅ Jika memungkinkan, buat kompos sendiri di rumah'
+      ],
+      tips: '💡 Sampah organik dapat diolah menjadi pupuk kompos yang bermanfaat untuk tanaman. Gunakan ember kompos atau lubang biopori di halaman rumah!',
+      impact: '🌍 Dengan memilah sampah organik, kita mengurangi emisi gas metana dari TPA dan menghasilkan pupuk alami yang menyuburkan tanah.'
+    },
+    Anorganik: {
+      title: '♻️ Panduan Memilah Sampah Anorganik',
+      icon: '♻️',
+      color: 'blue',
+      fullDescription: `Sampah anorganik adalah sampah yang tidak mudah terurai dan sebagian besar dapat didaur ulang menjadi produk baru.`,
+      steps: [
+        '✅ Bersihkan sampah dari sisa makanan/minuman',
+        '✅ Pisahkan berdasarkan jenis: plastik, kertas, logam, kaca',
+        '✅ Lipat atau tekan agar volumenya lebih kecil',
+        '✅ Kumpulkan di tempat khusus untuk disetorkan ke bank sampah'
+      ],
+      tips: '💡 Botol plastik PET bisa diubah menjadi serat pakaian, sedangkan kertas bekas bisa didaur ulang menjadi kertas daur ulang. Jangan buang sembarangan!',
+      impact: '🌍 Mendaur ulang 1 ton plastik dapat menghemat minyak bumi hingga 5.000 liter dan mengurangi polusi laut.'
+    },
+    B3: {
+      title: '⚠️ Panduan Memilah Sampah B3 (Berbahaya & Beracun)',
+      icon: '⚠️',
+      color: 'red',
+      fullDescription: `Sampah B3 adalah limbah berbahaya dan beracun yang memerlukan penanganan khusus karena dapat membahayakan kesehatan dan lingkungan.`,
+      steps: [
+        '✅ Jangan pernah membuang B3 bersama sampah rumah tangga biasa',
+        '✅ Simpan dalam wadah tertutup rapat dan beri label',
+        '✅ Bawa ke tempat pengumpulan khusus B3 terdekat',
+        '✅ Gunakan sarung tangan saat menangani limbah B3'
+      ],
+      tips: '💡 Baterai bekas mengandung logam berat berbahaya. Kumpulkan di dropbox khusus yang disediakan oleh pemerintah atau toko elektronik.',
+      impact: '🌍 Penanganan B3 yang benar mencegah kontaminasi tanah dan air tanah yang bisa membahayakan kesehatan masyarakat selama puluhan tahun.'
+    }
+  };
+
   // Dynamic user profiles details
   const userProfile = {
     name: 'Budi Santoso',
-    email: 'kresnaprabawistara@gmail.com', // user email provided
+    email: 'kresnaprabawistara@gmail.com',
     phone: '0812-3456-7890',
     address: 'Mantrijeron, Yogyakarta',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
@@ -112,7 +163,7 @@ export default function App() {
   // Jogja Districts list 
   const JOGJA_DISTRICTS = ['Mantrijeron', 'Kraton', 'Mergangsan', 'Jetis', 'Danurejan', 'Gondokusuman', 'Wirobrajan'];
 
-  // Handle auto preset emails for easier login demo experience
+  // Handle auto preset emails
   useEffect(() => {
     if (role === 'warga') {
       setLoginEmail('warga@jogjagreen.id');
@@ -166,10 +217,9 @@ export default function App() {
     };
 
     setReports([newReport, ...reports]);
-    setUserPoints(userPoints + 150); // reward points for civic action!
+    setUserPoints(userPoints + 150);
     setSubmissionSuccess(true);
     
-    // Reset inputs
     setNewDescription('');
     setUploadedPhotoUrl('');
   };
@@ -196,7 +246,7 @@ export default function App() {
 
   const handleRedeemReward = (reward: Reward) => {
     if (userPoints < reward.points) {
-      alert('Poin Anda tidak mencukupi untuk menukar reward ini.');
+      alert(`Poin Anda tidak mencukupi. Butuh ${reward.points} poin, Anda baru punya ${userPoints} poin.`);
       return;
     }
     setSelectedReward(reward);
@@ -206,13 +256,11 @@ export default function App() {
   const confirmRedeem = () => {
     if (!selectedReward) return;
     setUserPoints(userPoints - selectedReward.points);
-    // Generate mock serial number
     const code = `JOGREEN-${selectedReward.id}-${Math.floor(10000 + Math.random() * 90000)}`;
     setRedeemedCode(code);
     setRedemptionSuccess(true);
   };
 
-  // Simulating quick action states
   const toggleReportStatus = (rptId: string) => {
     setReports(reports.map(r => {
       if (r.id === rptId) {
@@ -239,12 +287,18 @@ export default function App() {
     }));
   };
 
+  // Fungsi untuk membuka modal edukasi panduan
+  const openGuideEducation = (category: 'Organik' | 'Anorganik' | 'B3') => {
+    setSelectedGuideCategory(category);
+    setShowGuideModal(true);
+  };
+
   return (
-      <div className="min-h-screen bg-gray-100 flex justify-center items-stretch p-0 md:p-4 font-sans antialiased text-gray-900 selection:bg-emerald-200 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-100 flex justify-center items-stretch p-0 md:p-4 font-sans antialiased text-gray-900 selection:bg-emerald-200 overflow-x-hidden">
       <div className="w-full max-w-[720px] bg-[#F9FAF9] min-h-screen md:min-h-[880px] md:max-h-[920px] md:rounded-[36px] md:shadow-2xl overflow-x-hidden overflow-y-auto flex flex-col relative border border-gray-200/50">
         <AnimatePresence mode="wait">
           
-          {/* 1. SPLASH SCREEN */}
+          {/* SPLASH SCREEN */}
           {screen === 'splash' && (
             <motion.div 
               key="splash"
@@ -271,7 +325,6 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Decorative Mock App Illustration */}
               <div className="my-4 px-4 py-3 bg-white/70 border border-emerald-100 rounded-3xl shadow-sm text-left max-w-sm mx-auto">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-800">
@@ -324,7 +377,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 2. LOGIN & ROLE SELECTION SCREEN */}
+          {/* LOGIN SCREEN */}
           {screen === 'login' && (
             <motion.div
               key="login"
@@ -346,7 +399,6 @@ export default function App() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Pilih Peran &amp; Masuk</h2>
                 <p className="text-gray-500 text-sm mb-6">Pilih salah satu peran di bawah ini untuk menguji prototipe aplikasi JogjaGreen.</p>
 
-                {/* Role Toggle Selector Container */}
                 <div className="grid grid-cols-3 gap-2 mb-6 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
                   <button
                     id="role-warga"
@@ -434,7 +486,6 @@ export default function App() {
                 </form>
               </div>
 
-              {/* Quick Preset Selector */}
               <div className="mt-8 p-4 bg-emerald-50/50 rounded-2xl border border-emerald-100">
                 <h4 className="text-xs font-bold text-emerald-800 mb-2">Tip Demo Cepat:</h4>
                 <p className="text-[11px] text-gray-600">Klik tombol peran di atas untuk menyesuaikan email masuk secara otomatis. Kata sandi sudah terisi otomatis.</p>
@@ -442,7 +493,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 3. HOME DASHBOARD FOR WARGA */}
+          {/* WARGA HOME DASHBOARD */}
           {screen === 'warga_home' && (
             <motion.div
               key="warga_home"
@@ -451,7 +502,6 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col justify-between pb-24"
             >
-              {/* Header */}
               <div className="bg-emerald-800 text-white px-6 pt-8 pb-12 rounded-b-[32px] shadow-lg relative overflow-hidden">
                 <div className="absolute right-0 bottom-0 translate-x-12 translate-y-12 opacity-10">
                   <Trash2 className="w-48 h-48" />
@@ -480,7 +530,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Score & Streak Bento Summary Card */}
                 <div className="bg-white text-gray-900 p-5 rounded-2xl shadow-md border border-emerald-100 relative z-10">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">JogjaGreen Poin Saya</span>
@@ -506,10 +555,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Main Contents */}
               <div className="px-6 -mt-6 relative z-20 space-y-4">
                 
-                {/* Waste Status Summary Card */}
                 <div className="bg-emerald-500 text-white p-5 rounded-3xl shadow-md flex items-center justify-between border border-emerald-400">
                   <div>
                     <span className="text-[10px] font-extrabold text-emerald-100 uppercase tracking-wider mr-2">STATUS SAMPAH SAYA</span>
@@ -521,7 +568,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Quick Actions grid */}
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Aksi Cepat</h3>
                   <div className="grid grid-cols-4 gap-2">
@@ -571,7 +617,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Today's Waste Collection Schedule Card */}
                 <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100">
                   <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
@@ -593,7 +638,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Nearby TPS Mini Map preview */}
                 <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100">
                   <div className="p-4 border-b border-gray-50 flex justify-between items-center">
                     <div>
@@ -608,9 +652,7 @@ export default function App() {
                       <Navigation className="w-4 h-4" />
                     </button>
                   </div>
-                  {/* Decorative Map Visual */}
                   <div className="h-28 bg-emerald-100 relative overflow-hidden flex items-center justify-center cursor-pointer" onClick={() => setScreen('warga_peta')}>
-                    {/* SVG/CSS simplified map blueprint representation to match clean aesthetic */}
                     <div className="absolute inset-0 bg-emerald-50 opacity-50 flex flex-wrap gap-2 p-1">
                       {Array.from({ length: 48 }).map((_, i) => (
                         <div key={i} className="w-10 h-6 bg-white rounded-md border border-gray-200/40"></div>
@@ -624,7 +666,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Recent activity log */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Laporan Saya Terbaru</h3>
                   <div className="space-y-2">
@@ -655,7 +696,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 4. REPORT WASTE SCREEN (LAPOR) */}
+          {/* LAPOR SCREEN */}
           {screen === 'warga_lapor' && (
             <motion.div
               key="warga_lapor"
@@ -665,7 +706,6 @@ export default function App() {
               className="flex-1 flex flex-col justify-between pb-24"
             >
               <div>
-                {/* Custom Tool Header */}
                 <div className="p-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
                   <button
                     id="lapor-back"
@@ -681,7 +721,6 @@ export default function App() {
 
                 <div className="p-6 space-y-6">
                   
-                  {/* Photo area */}
                   <div className="space-y-2">
                     <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Unggah Foto Bukti Sampah</label>
                     
@@ -706,7 +745,6 @@ export default function App() {
                           <p className="text-[11px] text-gray-400 mt-1 mb-4">Pilih salah satu preset foto tumpukan sampah di Yogyakarta untuk simulasi:</p>
                         </div>
 
-                        {/* Preset templates for easiest realistic sandbox demos */}
                         <div className="grid grid-cols-3 gap-2">
                           {presetPhotos.map((p, idx) => (
                             <button
@@ -724,7 +762,6 @@ export default function App() {
                     )}
                   </div>
 
-                  {/* Form fields */}
                   <form onSubmit={handleNewReportSubmit} className="space-y-4">
                     <div>
                       <div className="flex justify-between items-center mb-2">
@@ -752,7 +789,6 @@ export default function App() {
                       />
                     </div>
 
-                    {/* District Dropdown Selector */}
                     <div className="relative">
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Kecamatan (Kemantren)</label>
                       <button
@@ -785,7 +821,6 @@ export default function App() {
                       )}
                     </div>
 
-                    {/* Waste Category Selection */}
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Jenis Sampah Utama</label>
                       <div className="grid grid-cols-3 gap-2">
@@ -807,7 +842,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Description text area */}
                     <div>
                       <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">Deskripsi Kerusakan / Volume Sampah</label>
                       <textarea
@@ -829,7 +863,6 @@ export default function App() {
                     </button>
                   </form>
 
-                  {/* History of citizen reports list */}
                   <div className="pt-4 border-t border-gray-100">
                     <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Riwayat Keterlibatan Laporan Saya</h3>
                     
@@ -869,7 +902,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* SUCCESS MODAL FOR LAPORAN */}
               {submissionSuccess && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSubmissionSuccess(false)}></div>
@@ -899,7 +931,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 5. SORTING GUIDE SCREEN (PANDUAN PILAH) */}
+          {/* PANDUAN PILAH SCREEN - DENGAN FITUR KLIK EDUKASI */}
           {screen === 'warga_guide' && (
             <motion.div
               key="warga_guide"
@@ -909,7 +941,6 @@ export default function App() {
               className="flex-1 flex flex-col justify-between pb-24"
             >
               <div>
-                {/* Custom Tool Header */}
                 <div className="p-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
                   <button
                     id="guide-back"
@@ -929,54 +960,61 @@ export default function App() {
                     <p className="text-xs text-gray-500">Memilah sampah membantu menjaga kelancaran TPS3R Nitikan Yogyakarta dan mengurangi pencemaran laut.</p>
                   </div>
 
-                  {/* Kategori Organizer detail cards */}
-                  <div className="space-y-4">
-                    
-                    {/* Organik */}
-                    <div className="bg-white border border-emerald-100 p-5 rounded-3xl shadow-sm space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">O</div>
-                        <h4 className="text-md font-bold text-emerald-800">1. Sampah Organik (Dapat Membusuk)</h4>
-                      </div>
-                      <p className="text-xs text-gray-600 leading-relaxed">Sampah basah sisa organisme hidup yang mudah terurai dan sangat baik diproses ulang menjadi pupuk organik.</p>
-                      <div className="bg-emerald-50 rounded-xl p-3 flex flex-wrap gap-2 text-[11px] text-emerald-800 font-semibold direct-span">
-                        <span>🥬 Sisa Sayur &amp; Kulit Buah</span>
-                        <span>🐟 Daging/Sisa Makanan</span>
-                        <span>🍂 Dedaunan Kering</span>
-                      </div>
+                  {/* Kategori Organik - BISA DIKLIK */}
+                  <div 
+                    className="bg-white border border-emerald-100 p-5 rounded-3xl shadow-sm space-y-3 cursor-pointer hover:shadow-md transition-all hover:border-emerald-300 active:scale-[0.99]"
+                    onClick={() => openGuideEducation('Organik')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm">O</div>
+                      <h4 className="text-md font-bold text-emerald-800">1. Sampah Organik (Dapat Membusuk)</h4>
+                      <span className="ml-auto text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">Klik untuk detail →</span>
                     </div>
-
-                    {/* Anorganik */}
-                    <div className="bg-white border border-blue-100 p-5 rounded-3xl shadow-sm space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">A</div>
-                        <h4 className="text-md font-bold text-blue-800">2. Sampah Anorganik (Bisa Didaur Ulang)</h4>
-                      </div>
-                      <p className="text-xs text-gray-600 leading-relaxed">Sampah kering dari bahan buatan manusia yang tidak bisa membusuk, namun memiliki nilai jual ekonomi tinggi.</p>
-                      <div className="bg-blue-50 rounded-xl p-3 flex flex-wrap gap-1.5 text-[11px] text-blue-800 font-semibold direct-span">
-                        <span>🥤 Botol Plastik PET</span>
-                        <span>📦 Kardus &amp; Kertas Bekas</span>
-                        <span>🥫 Kaleng Aluminium</span>
-                      </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">Sampah basah sisa organisme hidup yang mudah terurai dan sangat baik diproses ulang menjadi pupuk organik.</p>
+                    <div className="bg-emerald-50 rounded-xl p-3 flex flex-wrap gap-2 text-[11px] text-emerald-800 font-semibold direct-span">
+                      <span>🥬 Sisa Sayur &amp; Kulit Buah</span>
+                      <span>🐟 Daging/Sisa Makanan</span>
+                      <span>🍂 Dedaunan Kering</span>
                     </div>
-
-                    {/* B3 */}
-                    <div className="bg-white border border-red-100 p-5 rounded-3xl shadow-sm space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm">B3</div>
-                        <h4 className="text-md font-bold text-red-800">3. Sampah B3 (Berbahaya &amp; Beracun)</h4>
-                      </div>
-                      <p className="text-xs text-gray-600 leading-relaxed">Limbah rumah tangga yang mengandung zat beracun kimia atau berbahaya bagi kesehatan lingkungan.</p>
-                      <div className="bg-red-50 rounded-xl p-3 flex flex-wrap gap-1.5 text-[11px] text-red-800 font-semibold direct-span">
-                        <span>🔋 Baterai Bekas</span>
-                        <span>💡 Lampu Neon / LED</span>
-                        <span>🧪 Sisa Oli / Botol Pembersih</span>
-                      </div>
-                    </div>
-
                   </div>
 
-                  {/* Interactive Cek Jenis Sampah Mini-calculator / quiz */}
+                  {/* Kategori Anorganik - BISA DIKLIK */}
+                  <div 
+                    className="bg-white border border-blue-100 p-5 rounded-3xl shadow-sm space-y-3 cursor-pointer hover:shadow-md transition-all hover:border-blue-300 active:scale-[0.99]"
+                    onClick={() => openGuideEducation('Anorganik')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">A</div>
+                      <h4 className="text-md font-bold text-blue-800">2. Sampah Anorganik (Bisa Didaur Ulang)</h4>
+                      <span className="ml-auto text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full">Klik untuk detail →</span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">Sampah kering dari bahan buatan manusia yang tidak bisa membusuk, namun memiliki nilai jual ekonomi tinggi.</p>
+                    <div className="bg-blue-50 rounded-xl p-3 flex flex-wrap gap-1.5 text-[11px] text-blue-800 font-semibold direct-span">
+                      <span>🥤 Botol Plastik PET</span>
+                      <span>📦 Kardus &amp; Kertas Bekas</span>
+                      <span>🥫 Kaleng Aluminium</span>
+                    </div>
+                  </div>
+
+                  {/* Kategori B3 - BISA DIKLIK */}
+                  <div 
+                    className="bg-white border border-red-100 p-5 rounded-3xl shadow-sm space-y-3 cursor-pointer hover:shadow-md transition-all hover:border-red-300 active:scale-[0.99]"
+                    onClick={() => openGuideEducation('B3')}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm">B3</div>
+                      <h4 className="text-md font-bold text-red-800">3. Sampah B3 (Berbahaya &amp; Beracun)</h4>
+                      <span className="ml-auto text-[10px] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full">Klik untuk detail →</span>
+                    </div>
+                    <p className="text-xs text-gray-600 leading-relaxed">Limbah rumah tangga yang mengandung zat beracun kimia atau berbahaya bagi kesehatan lingkungan.</p>
+                    <div className="bg-red-50 rounded-xl p-3 flex flex-wrap gap-1.5 text-[11px] text-red-800 font-semibold direct-span">
+                      <span>🔋 Baterai Bekas</span>
+                      <span>💡 Lampu Neon / LED</span>
+                      <span>🧪 Sisa Oli / Botol Pembersih</span>
+                    </div>
+                  </div>
+
+                  {/* QUIZ SECTION */}
                   <div className="bg-gradient-to-br from-emerald-900 to-emerald-800 text-white p-6 rounded-3xl shadow-md">
                     <div className="flex justify-between items-center mb-4">
                       <h4 className="text-md font-bold">Cek Jenis Sampah &amp; Belajar</h4>
@@ -1040,10 +1078,84 @@ export default function App() {
 
                 </div>
               </div>
+
+              {/* MODAL EDUKASI PANDUAN PILAH */}
+              {showGuideModal && selectedGuideCategory && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowGuideModal(false)}></div>
+                  <motion.div
+                    initial={{ y: 50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    className="bg-white rounded-3xl p-6 w-full max-w-sm relative z-10 shadow-2xl max-h-[90vh] overflow-y-auto"
+                  >
+                    <button
+                      onClick={() => setShowGuideModal(false)}
+                      className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-all"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+
+                    {(() => {
+                      const data = guideEducationData[selectedGuideCategory];
+                      const colorMap = {
+                        Organik: 'emerald',
+                        Anorganik: 'blue',
+                        B3: 'red'
+                      };
+                      const color = colorMap[selectedGuideCategory];
+                      
+                      return (
+                        <div className="space-y-4">
+                          <div className={`p-4 bg-${color}-50 rounded-2xl border border-${color}-100`}>
+                            <h3 className={`text-lg font-bold text-${color}-800`}>
+                              {data.icon} {data.title}
+                            </h3>
+                          </div>
+
+                          <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">
+                            <p>{data.fullDescription}</p>
+                          </div>
+
+                          <div>
+                            <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">📋 Langkah Memilah:</h4>
+                            <ul className="space-y-1.5 text-sm text-gray-600">
+                              {data.steps.map((step, idx) => (
+                                <li key={idx} className="flex items-start gap-2">
+                                  <span className="text-emerald-600 font-bold mt-0.5">•</span>
+                                  <span>{step}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div className={`bg-${color}-50 p-4 rounded-xl border border-${color}-100`}>
+                            <h4 className={`text-xs font-bold text-${color}-700 uppercase tracking-wider mb-1`}>💡 Tips Praktis:</h4>
+                            <p className="text-sm text-gray-700">{data.tips}</p>
+                          </div>
+
+                          <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                            <h4 className="text-xs font-bold text-emerald-700 uppercase tracking-wider mb-1">🌍 Dampak Positif:</h4>
+                            <p className="text-sm text-gray-700">{data.impact}</p>
+                          </div>
+
+                          <button
+                            onClick={() => setShowGuideModal(false)}
+                            className={`w-full py-3 bg-${color}-600 hover:bg-${color}-700 text-white font-bold rounded-xl transition-all active:scale-95`}
+                          >
+                            Saya Mengerti!
+                          </button>
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
+                </div>
+              )}
+
             </motion.div>
           )}
 
-          {/* 6. MAP / TPS SCREEN */}
+          {/* PETA / TPS SCREEN */}
           {screen === 'warga_peta' && (
             <motion.div
               key="warga_peta"
@@ -1052,7 +1164,6 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col justify-between pb-24 relative overflow-hidden"
             >
-              {/* Map Search & Header bar overlays */}
               <div className="p-4 absolute top-0 left-0 right-0 z-30 space-y-2">
                 <div className="bg-white/95 backdrop-blur shadow-md rounded-2xl p-2 flex items-center gap-2 border border-emerald-100">
                   <button
@@ -1085,7 +1196,6 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Filter chips */}
                 <div className="flex gap-1 overflow-x-auto pb-1 no-scrollbar-div scrollbar-none">
                   {(['all', 'terdekat', 'buka', 'penuh'] as const).map(f => (
                     <button
@@ -1104,9 +1214,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Decorative Screen Canvas Map */}
               <div className="flex-1 bg-emerald-50/20 relative flex items-center justify-center p-0">
-                {/* Visual streets representation */}
                 <div className="absolute inset-0 bg-[#E8F0E5] opacity-80 pointer-events-none">
                   <div className="absolute inset-0 flex flex-col justify-around">
                     {Array.from({ length: 6 }).map((_, i) => (
@@ -1118,12 +1226,10 @@ export default function App() {
                       <div key={i} className="w-6 bg-white border-x border-gray-200/50"></div>
                     ))}
                   </div>
-                  {/* Diagonal streets */}
                   <div className="absolute top-0 left-0 w-full h-[3px] bg-white rotate-12 origin-top-left"></div>
                   <div className="absolute bottom-0 right-0 w-full h-[3px] bg-white -rotate-12 origin-bottom-right"></div>
                 </div>
 
-                {/* Markers dynamic render */}
                 {tpsPoints
                   .filter(tps => {
                     if (mapFilter === 'terdekat') return tps.distance.includes('meter') || tps.distance.includes('1.2 km');
@@ -1158,7 +1264,6 @@ export default function App() {
                     </button>
                 ))}
 
-                {/* Yogyakarta center marker */}
                 <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
                   <div className="w-4 h-4 bg-emerald-500 rounded-full border-2 border-white pointer-events-none animate-ping absolute"></div>
                   <div className="w-4 h-4 bg-emerald-600 rounded-full border-2 border-white relative flex items-center justify-center">
@@ -1168,7 +1273,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Botton detail sheet */}
               {selectedTpsId && (() => {
                 const activeTps = tpsPoints.find(t => t.id === selectedTpsId);
                 if (!activeTps) return null;
@@ -1190,8 +1294,7 @@ export default function App() {
                         </div>
                         <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
                           <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                          Mantrijeron • {activeTps.distance} dari lokasi Anda
-                        </p>
+                          Mantrijeron • {activeTps.distance} dari lokasi Anda                        </p>
                       </div>
                       <button
                         id="btn-close-sheet"
@@ -1204,13 +1307,12 @@ export default function App() {
 
                     <div className="grid grid-cols-2 gap-3 text-xs">
                       <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">TINGKAT KEPENUHAN BEREAKSI</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">TINGKAT KEPENUHAN</span>
                         <div className="flex items-center gap-2">
                           <span className={`text-sm font-bold ${activeTps.capacity >= 80 ? 'text-red-600' : 'text-emerald-700'}`}>
                             {activeTps.capacity}% Penuh
                           </span>
                         </div>
-                        {/* Fill levels progress indicator */}
                         <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden mt-1.5">
                           <div 
                             className={`h-full ${activeTps.capacity >= 80 ? 'bg-red-600' : 'bg-emerald-600'}`} 
@@ -1220,7 +1322,7 @@ export default function App() {
                       </div>
 
                       <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">OPERASIONAL TIAP HARI</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">OPERASIONAL</span>
                         <span className="text-xs font-bold text-gray-700 block">{activeTps.hours} WIB</span>
                         <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded inline-block mt-1 font-semibold">Tepat Angkut</span>
                       </div>
@@ -1231,7 +1333,6 @@ export default function App() {
                         id="btn-tps-navigate"
                         onClick={() => {
                           alert(`Navigasi rute aktif menuju ${activeTps.name}. Ikuti rute sepanjang 1.2km!`);
-                          // Draw a route marker dummy representation
                         }}
                         className="col-span-2 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow"
                       >
@@ -1252,7 +1353,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 7. REWARD MARKETPLACE SCREEN (REWARD) */}
+          {/* REWARD MARKETPLACE SCREEN - MENGGUNAKAN DATA DARI MOCKS.TS */}
           {screen === 'warga_reward' && (
             <motion.div
               key="warga_reward"
@@ -1262,7 +1363,6 @@ export default function App() {
               className="flex-1 flex flex-col justify-between pb-24"
             >
               <div>
-                {/* Custom Tool Header */}
                 <div className="p-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
                   <button
                     id="reward-back"
@@ -1277,7 +1377,6 @@ export default function App() {
                 </div>
 
                 <div className="p-6 space-y-6">
-                  {/* Points Display inside marketplace */}
                   <div className="bg-gradient-to-r from-emerald-800 to-emerald-950 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden flex justify-between items-center">
                     <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10">
                       <Award className="w-32 h-32" />
@@ -1296,17 +1395,30 @@ export default function App() {
                     <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">Pilihan Penukaran Reward Eksklusif</h3>
                     
                     <div className="space-y-4">
+                      {/* Looping semua reward dari mocks.ts */}
                       {REWARDS.map((reward, index) => (
                         <div 
                           key={reward.id} 
                           className="bg-white rounded-3xl overflow-hidden border border-gray-100 shadow-sm flex flex-col sm:flex-row group"
                         >
-                          {/* Image and badges list as requested */}
                           <div className="w-full sm:w-1/3 aspect-[4/3] sm:aspect-auto sm:h-36 overflow-hidden relative shrink-0">
-                            <img src={reward.image} alt={reward.title} className="w-full h-full object-cover transition duration-300 group-hover:scale-105" />
+                            <img 
+                              src={reward.image} 
+                              alt={reward.title} 
+                              className="w-full h-full object-cover transition duration-300 group-hover:scale-105" 
+                              onError={(e) => {
+                                // Fallback jika gambar error
+                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&auto=format&fit=crop&q=80';
+                              }}
+                            />
                             {reward.badge && (
                               <span className="absolute top-2 left-2 text-[8px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow">
                                 {reward.badge}
+                              </span>
+                            )}
+                            {reward.limited && (
+                              <span className="absolute top-2 right-2 text-[8px] font-bold bg-red-600 text-white px-2 py-0.5 rounded-full shadow">
+                                TERBATAS
                               </span>
                             )}
                           </div>
@@ -1317,7 +1429,7 @@ export default function App() {
                                 <span className="text-[10px] text-gray-400 font-bold uppercase">{reward.category}</span>
                                 <span className="text-xs font-extrabold text-emerald-700">{reward.points} Poin</span>
                               </div>
-                              <h4 className="text-xs font-bold text-gray-800 line-clamp-1">{reward.title}</h4>
+                              <h4 className="text-xs font-bold text-gray-800 line-clamp-2">{reward.title}</h4>
                               <p className="text-[11px] text-gray-500 mt-0.5 leading-normal line-clamp-2">{reward.description}</p>
                             </div>
 
@@ -1325,9 +1437,13 @@ export default function App() {
                               id={`redeem-btn-${index}`}
                               disabled={userPoints < reward.points}
                               onClick={() => handleRedeemReward(reward)}
-                              className="w-full py-2 bg-emerald-100 hover:bg-emerald-600 text-emerald-800 hover:text-white disabled:opacity-40 disabled:bg-gray-100 disabled:text-gray-400 font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all active:scale-95 mt-3"
+                              className={`w-full py-2 font-extrabold text-[11px] uppercase tracking-wider rounded-xl transition-all active:scale-95 mt-3 ${
+                                userPoints >= reward.points 
+                                  ? 'bg-emerald-100 hover:bg-emerald-600 text-emerald-800 hover:text-white' 
+                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                              }`}
                             >
-                              {userPoints >= reward.points ? 'TUKAR SEKARANG' : 'POIN KELOLA BELUM CUKUP'}
+                              {userPoints >= reward.points ? 'TUKAR SEKARANG' : `BUTUH ${reward.points} POIN`}
                             </button>
                           </div>
                         </div>
@@ -1355,7 +1471,7 @@ export default function App() {
                         <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 text-center">
                           <span className="text-[10px] font-bold text-emerald-700 uppercase">Item yang Ditukarkan:</span>
                           <h5 className="text-sm font-bold text-emerald-950 mt-1">{selectedReward.title}</h5>
-                          <p className="text-xs text-gray-500 mt-2 font-medium">Beban Biaya: {selectedReward.points} Koin Penyelamat</p>
+                          <p className="text-xs text-gray-500 mt-2 font-medium">Biaya: {selectedReward.points} Koin Penyelamat</p>
                         </div>
 
                         <p className="text-[11px] text-gray-500 leading-normal text-center">Item ini akan segera diproses instan dan serial kupon digital Anda akan terbit otomatis.</p>
@@ -1364,14 +1480,14 @@ export default function App() {
                           <button
                             id="btn-redeem-cancel"
                             onClick={() => setSelectedReward(null)}
-                            className="py-3 bg-gray-100 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-250"
+                            className="py-3 bg-gray-100 text-gray-700 font-bold text-xs rounded-xl hover:bg-gray-200 transition"
                           >
                             Batal
                           </button>
                           <button
                             id="btn-redeem-confirm"
                             onClick={confirmRedeem}
-                            className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow"
+                            className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition"
                           >
                             Ya, Tukar
                           </button>
@@ -1384,18 +1500,18 @@ export default function App() {
                         </div>
                         <div>
                           <h4 className="text-lg font-bold text-emerald-950">Penukaran Sukses!</h4>
-                          <p className="text-xs text-gray-500 mt-1">Saldo poin berkurang. Berikut adalah nomor kupon penukaran Yogyakarta Anda:</p>
+                          <p className="text-xs text-gray-500 mt-1">Saldo poin berkurang. Berikut adalah nomor kupon penukaran Anda:</p>
                         </div>
 
                         <div className="bg-gray-100 p-3 rounded-xl border border-dashed border-gray-400 select-all font-mono text-xs font-bold text-emerald-800 tracking-wider">
                           {redeemedCode}
                         </div>
 
-                        <p className="text-[10px] text-gray-400">Salin kode di atas. Tunjukkan ke petugas toko kasir atau masukkan ke aplikasi PLN/GoPay untuk klaim.</p>
+                        <p className="text-[10px] text-gray-400">Salin kode di atas. Tunjukkan ke petugas toko kasir atau masukkan ke aplikasi untuk klaim.</p>
                         <button
                           id="btn-redeem-done"
                           onClick={() => setSelectedReward(null)}
-                          className="w-full py-3 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow hover:bg-emerald-700"
+                          className="w-full py-3 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow hover:bg-emerald-700 transition"
                         >
                           Selesai
                         </button>
@@ -1408,7 +1524,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 8. CITIZEN PROFILE SCREEN */}
+          {/* PROFIL SCREEN */}
           {screen === 'warga_profil' && (
             <motion.div
               key="warga_profil"
@@ -1431,7 +1547,6 @@ export default function App() {
                 </div>
 
                 <div className="p-6 space-y-6">
-                  {/* User credentials */}
                   <div className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-3xl shadow-sm">
                     <div className="w-16 h-16 rounded-2xl overflow-hidden shadow">
                       <img src={userProfile.avatar} alt="Citizen" className="w-full h-full object-cover" />
@@ -1443,15 +1558,14 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Yogyakarta Smart Citizen status metrics */}
                   <div className="grid grid-cols-2 gap-3 text-center">
                     <div className="bg-emerald-50/50 p-4 border border-emerald-100 rounded-2xl">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">KONTRIBUSI INDIVIDUAL</span>
-                      <span className="text-lg font-bold text-emerald-800 block mt-1">12 Kilogram</span>
-                      <span className="text-[9px] text-gray-500">Mencegah Sampah Liar</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">KONTRIBUSI</span>
+                      <span className="text-lg font-bold text-emerald-800 block mt-1">12 Kg</span>
+                      <span className="text-[9px] text-gray-500">Sampah Terpilah</span>
                     </div>
                     <div className="bg-emerald-50/50 p-4 border border-emerald-100 rounded-2xl">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">TINGKAT EVALUASI</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">EVALUASI</span>
                       <span className="text-lg font-bold text-emerald-800 block mt-1">Sangat Baik</span>
                       <span className="text-[9px] text-gray-500">Kolektor Pilah</span>
                     </div>
@@ -1479,7 +1593,7 @@ export default function App() {
                     onClick={() => setScreen('splash')}
                     className="w-full py-4 text-xs font-extrabold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition"
                   >
-                    <LogOut className="w-5 h-5" /> KELUAR AKUN / PINDAH PERAN
+                    <LogOut className="w-5 h-5" /> KELUAR AKUN
                   </button>
 
                 </div>
@@ -1487,7 +1601,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 9. OFFICER / PETUGAS DASHBOARD SCREEN */}
+          {/* PETUGAS DASHBOARD */}
           {screen === 'petugas_dashboard' && (
             <motion.div
               key="petugas_dashboard"
@@ -1496,14 +1610,13 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col justify-between pb-8 p-6 space-y-6"
             >
-              {/* Header */}
               <div className="flex justify-between items-center border-b border-gray-100 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center shrink-0">
                     <Shield className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[9px] font-extrabold text-emerald-700 uppercase tracking-wider block">TIM MONITR PETUGAS</span>
+                    <span className="text-[9px] font-extrabold text-emerald-700 uppercase tracking-wider block">TIM PETUGAS</span>
                     <h2 className="text-md font-extrabold text-gray-900 leading-tight">Dashboard Eko Prasetyo</h2>
                   </div>
                 </div>
@@ -1518,7 +1631,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Analytics Mini Cards block */}
               <div className="grid grid-cols-3 gap-2 text-center text-xs">
                 <div className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
                   <span className="text-[9px] text-gray-400 block font-bold uppercase">Lapor Hari Ini</span>
@@ -1534,19 +1646,18 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Status Container Sensor monitor bins */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Sensor Kapasitas Tempat Sampah Kota</h3>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Sensor Kapasitas TPS</h3>
                 
                 <div className="space-y-2">
-                  {TRASH_BINS.slice(0, 3).map((bin, index) => (
+                  {TRASH_BINS.slice(0, 3).map((bin) => (
                     <div key={bin.id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center justify-between">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-xs font-bold text-gray-800">{bin.locationName}</span>
                           <span className="text-[9px] font-bold bg-gray-100 uppercase px-1.5 py-0.5 rounded text-gray-500">{bin.type}</span>
                         </div>
-                        <p className="text-[10px] text-gray-400">Terakhir bongkar armada: {bin.lastPickup}</p>
+                        <p className="text-[10px] text-gray-400">Terakhir: {bin.lastPickup}</p>
                       </div>
 
                       <div className="text-right shrink-0">
@@ -1565,18 +1676,17 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Optimized routes planning section */}
               <div className="bg-gradient-to-br from-[#1E562F] to-[#0A2613] text-white p-5 rounded-3xl shadow-lg space-y-4">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h4 className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">ROUTE COLLECTION TRACKER</h4>
+                    <h4 className="text-xs font-bold text-emerald-200 uppercase tracking-wider block">ROUTE COLLECTION</h4>
                     <span className="text-md font-extrabold block">Optimalisasi Jalur Truk</span>
                   </div>
                   <button
                     id="btn-optimize-route"
                     onClick={() => {
                       setRouteOptimized(true);
-                      alert('Rute berhasil dihitung dengan algoritme AI kearifan lokal! Efisiensi bahan bakar +24% tercapai.');
+                      alert('Rute berhasil dihitung! Efisiensi bahan bakar +24%.');
                     }}
                     className="px-3 py-1.5 bg-yellow-400 hover:bg-yellow-500 text-emerald-950 font-extrabold text-[10px] uppercase rounded-lg shadow whitespace-nowrap active:scale-95 transition-all"
                   >
@@ -1584,38 +1694,33 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Simulated map route visualization overlay */}
                 <div className="relative h-28 bg-[#ffffff10] border border-white/10 rounded-2xl overflow-hidden flex items-center justify-center p-2">
                   <div className="absolute inset-0 opacity-20 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]"></div>
                   
                   {routeOptimized ? (
                     <div className="space-y-1 text-center relative z-10 w-full px-4">
                       <span className="text-[10px] text-yellow-300 font-extrabold uppercase block tracking-wider animate-pulse">Armada Rute Aktif</span>
-                      <p className="text-xs leading-normal font-medium text-emerald-100">Nitikan ➔ Mantrijeron ➔ Pasar Kranggan • Selesai 14:30 WIB</p>
+                      <p className="text-xs leading-normal font-medium text-emerald-100">Nitikan ➔ Mantrijeron ➔ Pasar Kranggan • 14:30 WIB</p>
                       <div className="w-full bg-emerald-700/60 h-1 rounded overflow-hidden mt-2 max-w-sm mx-auto">
                         <div className="bg-yellow-300 h-full animate-pulse" style={{ width: '65%' }}></div>
                       </div>
                     </div>
                   ) : (
                     <div className="text-center text-xs text-emerald-200">
-                      <p className="font-medium">Jaringan pembersihan belum tersambung ke sensor GPS.</p>
-                      <span className="text-[10px] opacity-75 block mt-1 hover:underline cursor-pointer" onClick={() => setRouteOptimized(true)}>
-                        Klik "Atur Rute AI" untuk menghitung jarak pemungutan.
-                      </span>
+                      <p className="font-medium">Klik "Atur Rute AI" untuk menghitung rute.</p>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* List of reports waiting to be completed */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Laporan Menunggu Tindakan</h3>
-                  <span className="text-[10px] font-bold text-emerald-700 font-mono">Daftar Live</span>
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">Laporan Menunggu</h3>
+                  <span className="text-[10px] font-bold text-emerald-700 font-mono">Live</span>
                 </div>
 
                 <div className="space-y-3">
-                  {reports.map((item, idx) => (
+                  {reports.map((item) => (
                     <div key={item.id} className="p-4 bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col gap-3">
                       <div className="flex justify-between items-start">
                         <div>
@@ -1623,7 +1728,7 @@ export default function App() {
                             item.priority === 'Tinggi' ? 'bg-red-100 text-red-800' :
                             item.priority === 'Sedang' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                            PRIORITAS {item.priority}
+                            {item.priority}
                           </span>
                           <span className="text-[10px] font-bold text-gray-400">{item.id}</span>
                         </div>
@@ -1642,32 +1747,26 @@ export default function App() {
                         <div>
                           <h4 className="text-xs font-bold text-gray-800">{item.location}</h4>
                           <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">{item.description}</p>
-                          <span className="text-[9px] text-gray-400 block mt-1">Diajukan: {item.reporterName} • {item.date}</span>
+                          <span className="text-[9px] text-gray-400 block mt-1">{item.reporterName} • {item.date}</span>
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50">
                         <button
-                          id={`tinjau-report-${idx}`}
-                          onClick={() => {
-                            setReviewingReport(item);
-                          }}
+                          onClick={() => setReviewingReport(item)}
                           className="py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-extrabold text-[11px] rounded-xl transition"
                         >
-                          Tinjau Detail
+                          Tinjau
                         </button>
                         <button
-                          id={`selesai-report-${idx}`}
-                          onClick={() => {
-                            toggleReportStatus(item.id);
-                          }}
+                          onClick={() => toggleReportStatus(item.id)}
                           className={`py-2.5 font-extrabold text-[11px] rounded-xl transition shadow-sm ${
                             item.status === 'Selesai' 
                               ? 'bg-amber-500 hover:bg-amber-600 text-white' 
                               : 'bg-emerald-600 hover:bg-emerald-700 text-white'
                           }`}
                         >
-                          {item.status === 'Selesai' ? 'Tandai Belum Beres' : 'Tandai Selesai Pickup'}
+                          {item.status === 'Selesai' ? 'Batal Selesai' : 'Tandai Selesai'}
                         </button>
                       </div>
                     </div>
@@ -1675,7 +1774,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* REPORT REVIEW MODAL DETAILS */}
               {reviewingReport && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setReviewingReport(null)}></div>
@@ -1685,18 +1783,18 @@ export default function App() {
                     className="bg-white rounded-3xl p-6 w-full max-w-sm relative z-10 shadow-2xl space-y-4"
                   >
                     <div className="flex justify-between items-center pb-2 border-b border-gray-100">
-                      <h4 className="text-md font-bold text-gray-900">Peninjauan Mandiri Petugas</h4>
-                      <button className="text-xs font-mono font-bold hover:text-red-500" onClick={() => setReviewingReport(null)}>X</button>
+                      <h4 className="text-md font-bold text-gray-900">Detail Laporan</h4>
+                      <button className="text-xs font-mono font-bold hover:text-red-500" onClick={() => setReviewingReport(null)}>✕</button>
                     </div>
 
                     <div className="aspect-video w-full rounded-2xl overflow-hidden shadow-sm">
-                      <img src={reviewingReport.photoUrl} alt="Laporan Foto" className="w-full h-full object-cover" />
+                      <img src={reviewingReport.photoUrl} alt="Foto" className="w-full h-full object-cover" />
                     </div>
 
-                    <div className="text-xs space-y-1 font-medium select-all">
-                      <p className="text-gray-400 uppercase text-[9px] font-bold">LOKASI DETIL:</p>
+                    <div className="text-xs space-y-1">
+                      <p className="text-gray-400 uppercase text-[9px] font-bold">LOKASI:</p>
                       <p className="text-gray-800 font-bold">{reviewingReport.location}</p>
-                      <p className="text-gray-400 text-[9px] font-bold block pt-2">DESKRIPSI WARGA:</p>
+                      <p className="text-gray-400 text-[9px] font-bold block pt-2">DESKRIPSI:</p>
                       <p className="text-gray-600 leading-normal bg-gray-50 p-3 rounded-xl border border-gray-100">{reviewingReport.description}</p>
                     </div>
 
@@ -1717,7 +1815,7 @@ export default function App() {
                         }}
                         className="py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl"
                       >
-                        Ubah Status Selesai
+                        Ubah Status
                       </button>
                     </div>
                   </motion.div>
@@ -1727,7 +1825,7 @@ export default function App() {
             </motion.div>
           )}
 
-          {/* 10. ADMIN / PEMDA DASHBOARD SCREEN */}
+          {/* ADMIN DASHBOARD */}
           {screen === 'admin_dashboard' && (
             <motion.div
               key="admin_dashboard"
@@ -1736,14 +1834,13 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="flex-1 flex flex-col justify-between pb-8 p-6 space-y-6"
             >
-              {/* Header */}
               <div className="flex justify-between items-center border-b border-gray-100 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-950 text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
                     <TrendingUp className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[9px] font-extrabold text-blue-800 uppercase tracking-wider block">YOGYAKARTA PEMDA VIEW</span>
+                    <span className="text-[9px] font-extrabold text-blue-800 uppercase tracking-wider block">PEMDA VIEW</span>
                     <h2 className="text-md font-extrabold text-gray-900 leading-tight">Yogyakarta Green Analytics</h2>
                   </div>
                 </div>
@@ -1757,7 +1854,6 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Citywide Waste Summary Status Cards */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white border border-gray-100 p-4 rounded-3xl shadow-sm text-center">
                   <span className="text-[10px] text-gray-400 block font-bold uppercase tracking-wider">Limbah Terdistribusi</span>
@@ -1767,20 +1863,19 @@ export default function App() {
                 <div className="bg-white border border-gray-100 p-4 rounded-3xl shadow-sm text-center">
                   <span className="text-[10px] text-gray-400 block font-bold uppercase tracking-wider">Koin Tertebus</span>
                   <span className="text-2xl font-black text-emerald-700 block mt-1">104.5k <span className="text-xs font-bold text-gray-400">Poin</span></span>
-                  <p className="text-[10px] text-emerald-600/80 font-bold bg-emerald-50 py-0.5 rounded mt-2 inline-block px-2">Sirkular Lestari</p>
+                  <p className="text-[10px] text-emerald-600/80 font-bold bg-emerald-50 py-0.5 rounded mt-2 inline-block px-2">Sirkular</p>
                 </div>
               </div>
 
-              {/* Filtering district & export panel */}
               <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-4">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-gray-400">Filter Analisis Wilayah</h4>
+                  <h4 className="text-xs font-extrabold uppercase tracking-widest text-gray-400">Filter Wilayah</h4>
                   <button
                     id="btn-admin-export"
                     onClick={() => setShowExportModal(true)}
                     className="p-1 px-3 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-extrabold rounded-lg uppercase tracking-wider transition"
                   >
-                    Ekspor Data
+                    Ekspor
                   </button>
                 </div>
 
@@ -1808,44 +1903,41 @@ export default function App() {
                       value={adminDateFilter}
                       onChange={(e) => setAdminDateFilter(e.target.value)}
                     >
-                      <option value="Semua">Bulan Ini (Juni)</option>
-                      <option value="Minggu">Minggu Terakhir</option>
+                      <option value="Semua">Bulan Ini</option>
+                      <option value="Minggu">Minggu Ini</option>
                       <option value="Hari">Hari Ini</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              {/* Trend Chart Area: dynamic vector high fidelity visual SVG chart */}
               <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm space-y-3">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider block">Grafik Volume Sampah Terpilah (Jan-Jun)</h4>
-                  <span className="text-[10px] font-extrabold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">KILOGRAM</span>
+                  <h4 className="text-xs font-bold text-gray-800 uppercase tracking-wider block">Grafik Volume (Jan-Jun)</h4>
+                  <span className="text-[10px] font-extrabold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">Kg</span>
                 </div>
 
                 <div className="h-32 w-full flex items-end justify-between pt-4 relative">
-                  {/* Backdrop chart grid lines */}
                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none opacity-20 border-b border-gray-300">
                     <div className="w-full h-[1px] bg-gray-400"></div>
                     <div className="w-full h-[1px] bg-gray-400"></div>
                     <div className="w-full h-[1px] bg-gray-400"></div>
                   </div>
 
-                  {/* Dynamic Custom Responsive Chart columns */}
                   {[
-                    { month: 'Jan', val: 80, color: 'bg-emerald-600' },
-                    { month: 'Feb', val: 110, color: 'bg-emerald-600' },
-                    { month: 'Mar', val: 95, color: 'bg-emerald-600' },
-                    { month: 'Apr', val: 140, color: 'bg-emerald-600' },
-                    { month: 'Mei', val: 125, color: 'bg-emerald-600' },
-                    { month: 'Jun', val: 165, color: 'bg-emerald-700' }
+                    { month: 'Jan', val: 80 },
+                    { month: 'Feb', val: 110 },
+                    { month: 'Mar', val: 95 },
+                    { month: 'Apr', val: 140 },
+                    { month: 'Mei', val: 125 },
+                    { month: 'Jun', val: 165 }
                   ].map((col, idx) => (
                     <div key={idx} className="flex flex-col items-center flex-1 space-y-1 relative z-10 group">
                       <span className="text-[9px] font-bold text-gray-400 hidden group-hover:block absolute -top-5 bg-gray-900 text-white px-1.5 py-0.5 rounded">
                         {col.val}kg
                       </span>
                       <div 
-                        className={`w-8 rounded-t-lg transition-all ${col.color}`} 
+                        className={`w-8 rounded-t-lg transition-all ${idx === 5 ? 'bg-emerald-700' : 'bg-emerald-600'}`} 
                         style={{ height: `${(col.val / 180) * 85}px` }}
                       ></div>
                       <span className="text-[10px] text-gray-500 font-semibold">{col.month}</span>
@@ -1854,18 +1946,18 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Citywide Active Citizen Submittals Monitor table */}
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aktivitas Laporan Warga se-Yogyakarta</h4>
-                  <span className="text-[10px] bg-gray-100 text-gray-500 rounded px-2 font-mono">Live Sync</span>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Laporan Warga</h4>
+                  <span className="text-[10px] bg-gray-100 text-gray-500 rounded px-2 font-mono">Sync</span>
                 </div>
 
                 <div className="space-y-3">
                   {reports
                     .filter(rpt => adminDistrictFilter === 'Semua' || rpt.district === adminDistrictFilter)
-                    .map((rpt, idx) => (
-                      <div key={rpt.id} id={`admin-monitor-${idx}`} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-2">
+                    .slice(0, 4)
+                    .map((rpt) => (
+                      <div key={rpt.id} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm space-y-2">
                         <div className="flex justify-between items-center text-[11px]">
                           <div>
                             <span className="font-extrabold text-blue-700 uppercase mr-2">{rpt.id}</span>
@@ -1880,7 +1972,7 @@ export default function App() {
                         </div>
 
                         <div className="text-xs text-gray-800 font-medium">
-                          Kemantren: <span className="font-bold text-emerald-800">{rpt.district}</span> • Alamat: {rpt.location}
+                          {rpt.district} • {rpt.location}
                         </div>
                         <p className="text-[11px] text-gray-500 italic">"{rpt.description}"</p>
                       </div>
@@ -1888,7 +1980,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* MOCK DATA EXPORT MODAL */}
               {showExportModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowExportModal(false)}></div>
@@ -1901,15 +1992,15 @@ export default function App() {
                       <FileText className="w-8 h-8" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-gray-900">Ekspor Data Berhasil!</h4>
-                      <p className="text-xs text-gray-500 mt-2">Unduhan data kelola sampah Yogyakarta (.XLSX) telah selesai diproses untuk kemantren {adminDistrictFilter === 'Semua' ? 'Keseluruhan' : adminDistrictFilter}.</p>
+                      <h4 className="text-lg font-bold text-gray-900">Ekspor Berhasil!</h4>
+                      <p className="text-xs text-gray-500 mt-2">Data kelola sampah Yogyakarta (.XLSX) siap diunduh.</p>
                     </div>
                     <button
                       id="btn-export-close"
                       onClick={() => setShowExportModal(false)}
                       className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 active:scale-95 transition-all"
                     >
-                      Beres, Mengerti
+                      Tutup
                     </button>
                   </motion.div>
                 </div>
@@ -1920,7 +2011,7 @@ export default function App() {
 
         </AnimatePresence>
 
-        {/* BOTTOM NAVIGATION BAR FOR CITIZEN (WARGA) */}
+        {/* BOTTOM NAVIGATION BAR */}
         {role === 'warga' && ['warga_home', 'warga_lapor', 'warga_peta', 'warga_reward', 'warga_guide', 'warga_profil'].includes(screen) && (
           <nav className="bottom-nav">
             <button
